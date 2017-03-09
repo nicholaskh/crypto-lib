@@ -64,9 +64,15 @@ void encrypt(const v8::FunctionCallbackInfo<v8::Value>& args) {
     char *secret = *secretStr;
     int secretType = args[2]->IntegerValue();
     int dataType = args[3]->IntegerValue();
-    Uint8Array *raw = *args[4].As<Uint8Array>();
-    string str = string((char*)(raw->Buffer()->GetContents().Data()), raw->ByteLength());
-    string in = str.substr(raw->ByteOffset(), raw->ByteLength());
+    string in;
+    if (args[4]->IsString()) {
+        String::Utf8Value str(args[4]->ToString());
+        in = *str;
+    } else {
+        Uint8Array *raw = *args[4].As<Uint8Array>();
+        string str = string((char*)(raw->Buffer()->GetContents().Data()), raw->Buffer()->ByteLength());
+        in = str.substr(raw->ByteOffset(), raw->ByteLength());
+    }
     //String::Utf8Value a(args[3].As<Array>());
 
     string out;
