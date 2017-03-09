@@ -9,6 +9,7 @@
 #include <openssl/err.h>
 
 using namespace v8;
+using namespace std;
 
 #define OUT_ENCRYPT_PATH "out.enc"
 #define OUT_DECRYPT_PATH "out.dec"
@@ -17,34 +18,32 @@ using namespace v8;
 //#define SEC_BYTES 87
 //#define RES_BYTES 116
 #define PADDING RSA_PKCS1_PADDING
-#define SEC_BYTES 117
-#define RES_BYTES 172
+#define SEC_BYTES 245
+#define RES_BYTES 344
 #define RSAPublicKeyFile "rsa_public_key.pem"
 #define RSAPrivateKeyFile "rsa_private_key.pem"
 
-#define TYPE_PRIVATE    0
+#define TYPE_PRIVATE 0
 #define TYPE_PUBLIC 1
 
 #define min(a,b) ( a < b ? a : b )
 
-char *rsaEncrypt(char *str, RSA *p_rsa, Isolate *isolate);
-char *rsaDecrypt(char *str, RSA *p_rsa, Isolate *isolate);
+string rsaEncrypt(string str, RSA *p_rsa, Isolate *isolate);
+string rsaDecrypt(string str, RSA *p_rsa, Isolate *isolate);
 
 RSA *importRSAKeyWithType(char *type);
 int getBlockSizeWithRSA_PADDING_TYPE(RSA *rsa, int padding_type);
-char *encryptByRsa(RSA *rsa, char *content, int keyType);
-char *decryptByRsa(RSA *rsa, char *content, int keyType);
-char *encryptByRsaToData(RSA *rsa, char *content, int keyType);
+string encryptByRsa(RSA *rsa, string content, int keyType);
+string decryptByRsa(RSA *rsa, string content, int keyType);
+string encryptByRsaToData(RSA *rsa, string content, int keyType);
 
-char *encryptByRsaWith(RSA *rsa, char *str, int keyType);
-char *decryptByRsaWith(RSA *rsa, char *str, int keyType);
+string encryptByRsaWith(RSA *rsa, string str, int keyType);
+string decryptByRsaWith(RSA *rsa, string str, int keyType);
 
-char *base64_encode(const unsigned char *bindata, char *base64, int binlength);
-int base64_decode(const char *base64, unsigned char *bindata);
+string base64_encode(string bindata);
+string base64_decode(string base64);
 
 int ceil(int a, int b);
-void join(char *a, char *b);
-void mid(char *dst, char *src, int n, int m);
 
 /*
    char *encrypt(    // 加密函数，nodejs 的 C语言 扩展函数
@@ -65,12 +64,12 @@ void encrypt(const v8::FunctionCallbackInfo<v8::Value>& args) {
     char *secret = *secretStr;
     int secretType = args[2]->IntegerValue();
     int dataType = args[3]->IntegerValue();
-    String::Utf8Value str(args[4]->ToString());
-    char *in = *str;
+    Uint8Array *raw = *args[4].As<Uint8Array>();
+    string str = string((char*)(raw->Buffer()->GetContents().Data()), raw->ByteLength());
+    string in = str.substr(raw->ByteOffset(), raw->ByteLength());
     //String::Utf8Value a(args[3].As<Array>());
 
-
-    char *out;
+    string out;
     if (alg == 0) {
         RSA *p_rsa;
         if (secretType == 0) {
@@ -105,14 +104,14 @@ void encrypt(const v8::FunctionCallbackInfo<v8::Value>& args) {
         return;
     }
     if (dataType == 0) {
-        args.GetReturnValue().Set(v8::String::NewFromUtf8(isolate, out));
+        args.GetReturnValue().Set(v8::String::NewFromUtf8(isolate, out.c_str()));
     } else {
         FILE *fp = fopen(OUT_ENCRYPT_PATH, "w");
         if (fp == 0) {
             isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Open output file error")));
             return;
         }
-        fwrite(out, strlen(out), 1, fp);
+        fwrite(out.c_str(), out.size(), 1, fp);
         fclose(fp);
         args.GetReturnValue().Set(v8::String::NewFromUtf8(isolate, OUT_ENCRYPT_PATH));
     }
@@ -140,9 +139,9 @@ void decrypt(const v8::FunctionCallbackInfo<v8::Value>& args) {
     int secretType = args[2]->IntegerValue();
     int dataType = args[3]->IntegerValue();
     String::Utf8Value str(args[4]->ToString());
-    char *in = *str;
+    string in = string(*str, str.length());
 
-    char *out;
+    string out;
     if (alg == 0) {
         RSA *p_rsa;
         if (secretType == 0) {
@@ -178,14 +177,14 @@ void decrypt(const v8::FunctionCallbackInfo<v8::Value>& args) {
         return;
     }
     if (dataType == 0) {
-        args.GetReturnValue().Set(v8::String::NewFromUtf8(isolate, out));
+        args.GetReturnValue().Set(v8::String::NewFromUtf8(isolate, out.c_str(), NewStringType::kNormal, out.size()).ToLocalChecked());
     } else {
         FILE *fp = fopen(OUT_DECRYPT_PATH, "w");
         if (fp == 0) {
             isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Open output file error")));
             return;
         }
-        fwrite(out, strlen(out), 1, fp);
+        fwrite(out.c_str(), out.size(), 1, fp);
         fclose(fp);
         args.GetReturnValue().Set(v8::String::NewFromUtf8(isolate, OUT_DECRYPT_PATH));
     }
@@ -240,13 +239,13 @@ void HexStrToByte(const char* source, unsigned char* dest, int sourceLen) {
     return;
 }
 
-char *rsaEncrypt(char *in, RSA *p_rsa, Isolate *isolate) {
-    char *out = encryptByRsaWith(p_rsa, in, TYPE_PRIVATE);
+string rsaEncrypt(string in, RSA *p_rsa, Isolate *isolate) {
+    string out = encryptByRsaWith(p_rsa, in, TYPE_PRIVATE);
     return out;
 }
 
-char *rsaDecrypt(char *in, RSA *p_rsa, Isolate *isolate) {
-    char *out = decryptByRsaWith(p_rsa, in, TYPE_PUBLIC);
+string rsaDecrypt(string in, RSA *p_rsa, Isolate *isolate) {
+    string out = decryptByRsaWith(p_rsa, in, TYPE_PUBLIC);
     return out;
 }
 
@@ -278,17 +277,15 @@ RSA *importRSAKeyWithType(int type) {
     return rsa;
 }
 
-char *encryptByRsa(RSA *rsa, char *content, int keyType) {
-    char *data = encryptByRsaToData(rsa, content, keyType);
-    int len = RES_BYTES;
-    char *base64 = (char*)calloc(1, len + 1);
-    char *ret = base64_encode((unsigned char*)data, base64, RSA_size(rsa));
+string encryptByRsa(RSA *rsa, string content, int keyType) {
+    string data = encryptByRsaToData(rsa, content, keyType);
+    string ret = base64_encode(data);
     return ret;
 }
 
-char *encryptByRsaToData(RSA *rsa, char *content, int keyType) {
+string encryptByRsaToData(RSA *rsa, string content, int keyType) {
     int status;
-    int length = strlen(content);
+    int length = content.size();
     char *input = (char*)calloc(1, length + 1);
     for (int i = 0; i < length; i++) {
         input[i] = content[i];
@@ -306,12 +303,11 @@ char *encryptByRsaToData(RSA *rsa, char *content, int keyType) {
 
         default:
             status = RSA_private_encrypt(length, (unsigned char*)input, (unsigned char*)encData, rsa, PADDING);
-            //printf("input:\n%s\n", encData);
             break;
     }
 
     if (status != -1) {
-        return encData;
+        return string(encData, flen);
     }
 
     ERR_print_errors_fp(stdout);
@@ -321,11 +317,9 @@ char *encryptByRsaToData(RSA *rsa, char *content, int keyType) {
     return (char*)NULL;
 }
 
-char *decryptByRsa(RSA *rsa, char *content, int keyType) {
+string decryptByRsa(RSA *rsa, string content, int keyType) {
     int status;
-    int len = (strlen(content) / 4 + 1) * 3;
-    char *data = (char*)calloc(1, len + 1);
-    base64_decode(content, (unsigned char*)data);
+    string data = base64_decode(content);
 
     int flen = getBlockSizeWithRSA_PADDING_TYPE(rsa, PADDING);
     char *decData = (char*)calloc(1, flen + 1);
@@ -334,24 +328,23 @@ char *decryptByRsa(RSA *rsa, char *content, int keyType) {
 
     switch (keyType) {
         case TYPE_PUBLIC:
-            status = RSA_public_decrypt(length, (unsigned char*)data, (unsigned char*)decData, rsa, PADDING);
-            //printf("output:\n%s\n%s\n", data, decData);
+            status = RSA_public_decrypt(length, (unsigned char*)data.c_str(), (unsigned char*)decData, rsa, PADDING);
             break;
 
         default:
-            status = RSA_private_decrypt(length, (unsigned char*)data, (unsigned char*)decData, rsa, PADDING);
+            status = RSA_private_decrypt(length, (unsigned char*)data.c_str(), (unsigned char*)decData, rsa, PADDING);
             break;
     }
 
     if (status != -1) {
-        return decData;
+        return string(decData, status);
     }
 
     ERR_print_errors_fp(stdout);
     free(decData);
     decData = NULL;
 
-    return (char*)NULL;
+    return (string)NULL;
 }
 
 int getBlockSizeWithRSA_PADDING_TYPE(RSA *rsa, int padding_type) {
@@ -366,30 +359,21 @@ int getBlockSizeWithRSA_PADDING_TYPE(RSA *rsa, int padding_type) {
     return len;
 }
 
-char *encryptByRsaWith(RSA *rsa, char *str, int keyType) {
-    int len = (strlen(str) / SEC_BYTES + 1) * RES_BYTES;
-    char *encryptStr = (char*)calloc(1, len + 1);
-    char *substr = (char*)calloc(1, SEC_BYTES + 1);
-    for (int i = 0; i < (int)(strlen(str) / SEC_BYTES + 1); i++) {
-        mid(substr, str, i * SEC_BYTES, min(SEC_BYTES, strlen(str) - i * SEC_BYTES));
-        //printf("\n\n%s\n\n", substr);
-        char *ss = encryptByRsa(rsa, substr, keyType);
-        join(encryptStr, ss);
+string encryptByRsaWith(RSA *rsa, string str, int keyType) {
+    string encryptStr;
+    for (int i = 0; i < (int)(str.size() / SEC_BYTES + 1); i++) {
+        string ss = encryptByRsa(rsa, str.substr(i * SEC_BYTES, min(SEC_BYTES, str.size() - i * SEC_BYTES)), keyType);
+        encryptStr.append(ss);
     }
     return encryptStr;
 }
 
-char *decryptByRsaWith(RSA *rsa, char *str, int keyType) {
-    int len = (strlen(str) / RES_BYTES) * SEC_BYTES;
-    char *decryptStr = (char*)calloc(1, len + 1);
-    char *substr = (char*)calloc(1, RES_BYTES + 1);
-    char *s = (char*)calloc(1, SEC_BYTES + 1);
-    for (int i = 0; i < ceil(strlen(str), RES_BYTES); i++) {
-        mid(substr, str, i * RES_BYTES, RES_BYTES);
-        char *rrr = decryptByRsa(rsa, substr, keyType);
-        mid(s, rrr, 0, SEC_BYTES);
-        char *sss = strlen(rrr) <= SEC_BYTES ? rrr : s;
-        join(decryptStr, sss);
+string decryptByRsaWith(RSA *rsa, string str, int keyType) {
+    string decryptStr;
+    for (int i = 0; i < ceil(str.size(), RES_BYTES); i++) {
+        string rrr = decryptByRsa(rsa, str.substr(i * RES_BYTES, RES_BYTES), keyType);
+        string sss = rrr.size() <= SEC_BYTES ? rrr : rrr.substr(0, SEC_BYTES);
+        decryptStr.append(sss);
     }
 
     return decryptStr;
@@ -403,79 +387,51 @@ int ceil(int a, int b) {
     }
 }
 
-void join(char *a, char *b) {
-    while (*a != '\0') {
-        a++;
-    }
-    while (*b != '\0') {
-        *a++ = *b++;
-    }
-}
-
-void mid(char *dst, char *src, int m, int n) {
-    char *p = src;
-    char *q = dst;
-    int len = strlen(src);
-    if (n > len)
-        n = len-m;
-    if (m < 0)
-        m = 0;
-    if (m > len)
-        return;
-    p += m;
-    while (n--)
-        *(q++) = *(p++);
-    *(q++) = '\0';
-}
-
 const char * base64char = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-char * base64_encode(const unsigned char * bindata, char * base64, int binlength)
-{
-    int i, j;
+string base64_encode(string bindata) {
+    string base64;
+    int i;
     unsigned char current;
+    int bindatalength = bindata.size();
 
-    for ( i = 0, j = 0 ; i < binlength ; i += 3 )
-    {
+    for (i = 0; i < bindatalength; i += 3) {
         current = (bindata[i] >> 2) ;
         current &= (unsigned char)0x3F;
-        base64[j++] = base64char[(int)current];
+        base64.append(string(1, base64char[(int)current]));
 
         current = ( (unsigned char)(bindata[i] << 4 ) ) & ( (unsigned char)0x30 ) ;
-        if ( i + 1 >= binlength )
-        {
-            base64[j++] = base64char[(int)current];
-            base64[j++] = '=';
-            base64[j++] = '=';
+        if ( i + 1 >= bindatalength ) {
+            base64.append(string(1, base64char[(int)current]));
+            base64.append("=");
+            base64.append("=");
             break;
         }
         current |= ( (unsigned char)(bindata[i+1] >> 4) ) & ( (unsigned char) 0x0F );
-        base64[j++] = base64char[(int)current];
+        base64.append(string(1, base64char[(int)current]));
 
         current = ( (unsigned char)(bindata[i+1] << 2) ) & ( (unsigned char)0x3C ) ;
-        if ( i + 2 >= binlength )
-        {
-            base64[j++] = base64char[(int)current];
-            base64[j++] = '=';
+        if (i + 2 >= bindatalength) {
+            base64.append(string(1, base64char[(int)current]));
+            base64.append("=");
             break;
         }
         current |= ( (unsigned char)(bindata[i+2] >> 6) ) & ( (unsigned char) 0x03 );
-        base64[j++] = base64char[(int)current];
+        base64.append(string(1, base64char[(int)current]));
 
         current = ( (unsigned char)bindata[i+2] ) & ( (unsigned char)0x3F ) ;
-        base64[j++] = base64char[(int)current];
+        base64.append(string(1, base64char[(int)current]));
     }
-    base64[j] = '\0';
     return base64;
 }
 
-int base64_decode(const char * base64, unsigned char * bindata)
-{
-    int i, j;
+string base64_decode(string base64) {
+    string bindata;
+    int i;
     unsigned char k;
     unsigned char temp[4];
-    for ( i = 0, j = 0; base64[i] != '\0' ; i += 4 )
-    {
+    string c;
+    for (i = 0; base64[i] != '\0' ; i += 4) {
         memset( temp, 0xFF, sizeof(temp) );
         for ( k = 0 ; k < 64 ; k ++ )
         {
@@ -498,21 +454,23 @@ int base64_decode(const char * base64, unsigned char * bindata)
                 temp[3]= k;
         }
 
-        bindata[j++] = ((unsigned char)(((unsigned char)(temp[0] << 2))&0xFC)) |
-                ((unsigned char)((unsigned char)(temp[1]>>4)&0x03));
+        c = string(1, ((unsigned char)(((unsigned char)(temp[0] << 2))&0xFC)) |
+            ((unsigned char)((unsigned char)(temp[1]>>4)&0x03)));
+        bindata.append(c);
         if ( base64[i+2] == '=' )
             break;
 
-        bindata[j++] = ((unsigned char)(((unsigned char)(temp[1] << 4))&0xF0)) |
-                ((unsigned char)((unsigned char)(temp[2]>>2)&0x0F));
+        c = string(1, ((unsigned char)(((unsigned char)(temp[1] << 4))&0xF0)) |
+            ((unsigned char)((unsigned char)(temp[2]>>2)&0x0F)));
+        bindata.append(c);
         if ( base64[i+3] == '=' )
             break;
 
-        bindata[j++] = ((unsigned char)(((unsigned char)(temp[2] << 6))&0xF0)) |
-                ((unsigned char)(temp[3]&0x3F));
+        c = string(1, ((unsigned char)(((unsigned char)(temp[2] << 6))&0xF0)) |
+            ((unsigned char)(temp[3]&0x3F)));
+        bindata.append(c);
     }
-    bindata[strlen((char *)bindata)] = 0;
-    return j;
+    return bindata;
 }
 
 void init(v8::Local<v8::Object> exports) {
