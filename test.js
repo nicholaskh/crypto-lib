@@ -38,8 +38,8 @@ const rsa_public_key = "-----BEGIN PUBLIC KEY-----\n" +
 var str = fs.readFileSync('jia245.txt');
 
 try {
-    //testSign();   
-    testEncrypt();
+    testSign();   
+    //testEncrypt();
 } catch (e) {
     console.log(e.toString());
 }

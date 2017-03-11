@@ -284,7 +284,7 @@ string rsaEncrypt(string in, RSA *p_rsa, Isolate *isolate, int alg) {
 }
 
 string rsaDecrypt(string in, RSA *p_rsa, Isolate *isolate, int alg) {
-    string out = decryptByRsaWith(p_rsa, in, 1 - TYPE_PUBLIC);
+    string out = decryptByRsaWith(p_rsa, in, 1 - alg);
     return out;
 }
 
@@ -400,7 +400,7 @@ int getBlockSizeWithRSA_PADDING_TYPE(RSA *rsa, int padding_type) {
 
 string encryptByRsaWith(RSA *rsa, string str, int keyType) {
     string encryptStr;
-    for (int i = 0; i < (int)(str.size() / SEC_BYTES); i++) {
+    for (int i = 0; i < ceil(str.size(), SEC_BYTES); i++) {
         string ss = encryptByRsa(rsa, str.substr(i * SEC_BYTES, min(SEC_BYTES, str.size() - i * SEC_BYTES)), keyType);
         encryptStr.append(ss);
     }
