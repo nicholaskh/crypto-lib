@@ -28,8 +28,8 @@ using namespace std;
 
 #define min(a,b) ( a < b ? a : b )
 
-string rsaEncrypt(string str, RSA *p_rsa, Isolate *isolate);
-string rsaDecrypt(string str, RSA *p_rsa, Isolate *isolate);
+string rsaEncrypt(string str, RSA *p_rsa, Isolate *isolate, int alg);
+string rsaDecrypt(string str, RSA *p_rsa, Isolate *isolate, int alg);
 
 RSA *importRSAKeyWithType(char *type);
 int getBlockSizeWithRSA_PADDING_TYPE(RSA *rsa, int padding_type);
@@ -92,7 +92,7 @@ void encrypt(const v8::FunctionCallbackInfo<v8::Value>& args) {
                 }
             } else {
                 if ((p_rsa = PEM_read_bio_RSAPublicKey(bio_key, NULL, NULL, NULL)) == NULL) {
-                    isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Read private key bio error")));
+                    isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Read public key bio error")));
                     BIO_free(bio_key);
                     return;
                 }
@@ -101,17 +101,25 @@ void encrypt(const v8::FunctionCallbackInfo<v8::Value>& args) {
         } else {
             FILE *file;
             if ((file = fopen(secret, "r")) == NULL) {
-                isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Open private key file error")));
+                isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Open key file error")));
                 return;
             }
-            if ((p_rsa = PEM_read_RSAPrivateKey(file, NULL, NULL, NULL)) == NULL) {
-                isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Read private key file error")));
-                fclose(file);
-                return;
+            if (alg == 0) {
+                if ((p_rsa = PEM_read_RSAPrivateKey(file, NULL, NULL, NULL)) == NULL) {
+                    isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Read private key file error")));
+                    fclose(file);
+                    return;
+                }
+            } else {
+                if ((p_rsa = PEM_read_RSA_PUBKEY(file, NULL, NULL, NULL)) == NULL) {
+                    isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Read public key file error")));
+                    fclose(file);
+                    return;
+                }
             }
             fclose(file);
         }
-        out = rsaEncrypt(in, p_rsa, isolate);
+        out = rsaEncrypt(in, p_rsa, isolate, alg);
         RSA_free(p_rsa);
     } else {
         isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Illegal alg input")));
@@ -135,7 +143,7 @@ void encrypt(const v8::FunctionCallbackInfo<v8::Value>& args) {
 
 /*
    char *decrypt(    // 解密函数，nodejs 的 C语言 扩展函数
-   int     alg,         // 算法种类，0:RSA private, 1:RSA public, 其他：未定义，返回错误码 -1
+   int     alg,         // 算法种类，0:RSA public, 1:RSA private, 其他：未定义，返回错误码 -1
    char    *secret,        // 密钥，pem格式字符串或公钥文件路径
    int     secretType,       // 数据类型，0:hex string，非0：file
    int     dataType,       // 数据类型，0:hex string，非0：file
@@ -156,35 +164,52 @@ void decrypt(const v8::FunctionCallbackInfo<v8::Value>& args) {
     string in = string(*str, str.length());
 
     string out;
-    if (alg == 0) {
+    if (alg == 0 || alg == 1) {
         RSA *p_rsa;
         if (secretType == 0) {
-            BIO *bio_public = BIO_new_mem_buf(secret, strlen(secret));
-            if (bio_public == NULL) {
+            BIO *bio_key = BIO_new_mem_buf(secret, strlen(secret));
+            if (bio_key == NULL) {
                 isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Failed to create public key BIO")));
                 return;
             }
-            if ((p_rsa = PEM_read_bio_RSAPublicKey(bio_public, NULL, NULL, NULL)) == NULL) {
-                isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Read public key bio error")));
-                BIO_free(bio_public);
-                return;
+            if (alg == 0) {
+                if ((p_rsa = PEM_read_bio_RSAPublicKey(bio_key, NULL, NULL, NULL)) == NULL) {
+                    isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Read public key bio error")));
+                    BIO_free(bio_key);
+                    return;
+                }
+            } else {
+                if ((p_rsa = PEM_read_bio_RSAPrivateKey(bio_key, NULL, NULL, NULL)) == NULL) {
+                    isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Read private key bio error")));
+                    BIO_free(bio_key);
+                    return;
+                }
             }
-            BIO_free(bio_public);
+            BIO_free(bio_key);
         } else {
             FILE *file;
             if ((file = fopen(secret, "r")) == NULL) {
-                isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Open public key file error")));
+                isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Open key file error")));
                 return;
             }
-            if ((p_rsa = PEM_read_RSA_PUBKEY(file, NULL, NULL, NULL)) == NULL) {
-                isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Read public key file error")));
-                fclose(file);
-                ERR_print_errors_fp(stdout);
-                return;
+            if (alg == 0) {
+                if ((p_rsa = PEM_read_RSA_PUBKEY(file, NULL, NULL, NULL)) == NULL) {
+                    isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Read public key file error")));
+                    fclose(file);
+                    ERR_print_errors_fp(stdout);
+                    return;
+                }
+            } else {
+                if ((p_rsa = PEM_read_RSAPrivateKey(file, NULL, NULL, NULL)) == NULL) {
+                    isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Read private key file error")));
+                    fclose(file);
+                    ERR_print_errors_fp(stdout);
+                    return;
+                }
             }
             fclose(file);
         }
-        out = rsaDecrypt(in, p_rsa, isolate);
+        out = rsaDecrypt(in, p_rsa, isolate, alg);
         RSA_free(p_rsa);
     } else {
         isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Illegal alg input")));
@@ -253,13 +278,13 @@ void HexStrToByte(const char* source, unsigned char* dest, int sourceLen) {
     return;
 }
 
-string rsaEncrypt(string in, RSA *p_rsa, Isolate *isolate) {
-    string out = encryptByRsaWith(p_rsa, in, TYPE_PRIVATE);
+string rsaEncrypt(string in, RSA *p_rsa, Isolate *isolate, int alg) {
+    string out = encryptByRsaWith(p_rsa, in, alg);
     return out;
 }
 
-string rsaDecrypt(string in, RSA *p_rsa, Isolate *isolate) {
-    string out = decryptByRsaWith(p_rsa, in, TYPE_PUBLIC);
+string rsaDecrypt(string in, RSA *p_rsa, Isolate *isolate, int alg) {
+    string out = decryptByRsaWith(p_rsa, in, 1 - TYPE_PUBLIC);
     return out;
 }
 
