@@ -47,7 +47,7 @@ int ceil(int a, int b);
 
 /*
    char *encrypt(    // 加密函数，nodejs 的 C语言 扩展函数
-   int     alg,         // 算法种类，0：RSA(RSA), 其他：未定义，返回错误码 -1
+   int     alg,         // 算法种类，0:RSA private, 1:RSA public, 其他：未定义，返回错误码 -1
    char    *secret,        // 密钥，pem格式字符串或私钥文件路径
    int     secretType,       // 数据类型，0:hex string，非0：file
    int     dataType,       // 数据类型，0:hex string，非0：file
@@ -76,20 +76,28 @@ void encrypt(const v8::FunctionCallbackInfo<v8::Value>& args) {
     //String::Utf8Value a(args[3].As<Array>());
 
     string out;
-    if (alg == 0) {
+    if (alg == 0 || alg == 1) {
         RSA *p_rsa;
         if (secretType == 0) {
-            BIO *bio_private = BIO_new_mem_buf(secret, strlen(secret));
-            if (bio_private == NULL) {
+            BIO *bio_key = BIO_new_mem_buf(secret, strlen(secret));
+            if (bio_key == NULL) {
                 isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Failed to create private key BIO")));
                 return;
             }
-            if ((p_rsa = PEM_read_bio_RSAPrivateKey(bio_private, NULL, NULL, NULL)) == NULL) {
-                isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Read private key bio error")));
-                BIO_free(bio_private);
-                return;
+            if (alg == 0) {
+                if ((p_rsa = PEM_read_bio_RSAPrivateKey(bio_key, NULL, NULL, NULL)) == NULL) {
+                    isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Read private key bio error")));
+                    BIO_free(bio_key);
+                    return;
+                }
+            } else {
+                if ((p_rsa = PEM_read_bio_RSAPublicKey(bio_key, NULL, NULL, NULL)) == NULL) {
+                    isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Read private key bio error")));
+                    BIO_free(bio_key);
+                    return;
+                }
             }
-            BIO_free(bio_private);
+            BIO_free(bio_key);
         } else {
             FILE *file;
             if ((file = fopen(secret, "r")) == NULL) {
@@ -127,7 +135,7 @@ void encrypt(const v8::FunctionCallbackInfo<v8::Value>& args) {
 
 /*
    char *decrypt(    // 解密函数，nodejs 的 C语言 扩展函数
-   int     alg,         // 算法种类，0：RSA(RSA), 其他：未定义，返回错误码 -1
+   int     alg,         // 算法种类，0:RSA private, 1:RSA public, 其他：未定义，返回错误码 -1
    char    *secret,        // 密钥，pem格式字符串或公钥文件路径
    int     secretType,       // 数据类型，0:hex string，非0：file
    int     dataType,       // 数据类型，0:hex string，非0：file
@@ -367,7 +375,7 @@ int getBlockSizeWithRSA_PADDING_TYPE(RSA *rsa, int padding_type) {
 
 string encryptByRsaWith(RSA *rsa, string str, int keyType) {
     string encryptStr;
-    for (int i = 0; i < (int)(str.size() / SEC_BYTES + 1); i++) {
+    for (int i = 0; i < (int)(str.size() / SEC_BYTES); i++) {
         string ss = encryptByRsa(rsa, str.substr(i * SEC_BYTES, min(SEC_BYTES, str.size() - i * SEC_BYTES)), keyType);
         encryptStr.append(ss);
     }

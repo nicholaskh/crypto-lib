@@ -35,7 +35,7 @@ const rsa_public_key = "-----BEGIN PUBLIC KEY-----\n" +
 
 //var str = "45678904567890456789045678904567890456789045678904567890456789045678904567890456789045678904567890456789045678904567890456789045678904567890456789045678904567890456789045678904567890456789045678904567890456789045678904567890456789045678904567890456789045678904567890abcdefghijklmnopqrstuvwxyzaaa";
 //var str = "456789045678904567890456789045678";
-var str = fs.readFileSync('abc.txt');
+var str = fs.readFileSync('jia245.txt');
 
 try {
     //加密
@@ -46,17 +46,17 @@ try {
     console.log("C扩展私钥加密: " + res + "\n");
 
     //Nodejs原生加密
-    //var pem = fs.readFileSync('rsa_private_key.pem');
-    //var key = pem.toString();
-    //var buf = new Buffer(str);
-    //var endata = crypto.privateEncrypt({
-    //    key: key,
-    //    padding: crypto.RSA_PKCS1_PADDING
-    //}, buf);
-    //var resNode = endata.toString("base64");
-    //console.log("Nodejs原生私钥加密: " + resNode + "\n");
+    var pem = fs.readFileSync('rsa_private_key.pem');
+    var key = pem.toString();
+    var buf = new Buffer(str);
+    var endata = crypto.privateEncrypt({
+        key: key,
+        padding: crypto.RSA_PKCS1_PADDING
+    }, buf);
+    var resNode = endata.toString("base64");
+    console.log("Nodejs原生私钥加密: " + resNode + "\n");
 
-    //assert.equal(res, resNode);
+    assert.equal(res, resNode);
 
     //解密
     console.log("解密:\n");
