@@ -2,7 +2,7 @@
     "targets": [
         {
             "target_name": "test",
-            "sources": [ "test.cc" ]
+            "sources": [ "test.cc", "rsa.cc" ]
         }
     ]
 }
