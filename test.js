@@ -39,7 +39,7 @@ var str = "456789045678904567890456789045678";
 //var str = fs.readFileSync('jia245.txt');
 
 try {
-    //testSign();   
+    testSign();   
     testEncrypt();
 } catch (e) {
     console.log(e.toString());
@@ -54,37 +54,37 @@ function testSign() {
     console.log("C扩展私钥加密: " + res + "\n");
 
     //Nodejs原生加密
-    //var pem = fs.readFileSync('rsa_private_key.pem');
-    //var key = pem.toString();
-    //var buf = new Buffer(str);
-    //var endata = crypto.privateEncrypt({
-    //    key: key,
-    //    padding: crypto.RSA_PKCS1_PADDING
-    //}, buf);
-    //var resNode = endata.toString("base64");
-    //console.log("Nodejs原生私钥加密: " + resNode + "\n");
+    var pem = fs.readFileSync('rsa_private_key.pem');
+    var key = pem.toString();
+    var buf = new Buffer(str);
+    var endata = crypto.privateEncrypt({
+        key: key,
+        padding: crypto.RSA_PKCS1_PADDING
+    }, buf);
+    var resNode = endata.toString("base64");
+    console.log("Nodejs原生私钥加密: " + resNode + "\n");
 
-    //assert.equal(res, resNode);
+    assert.equal(res, resNode);
 
     //解密
     console.log("解密:\n");
 
     //C扩展解密
-    res = binding.decrypt(0, "rsa_public_key.pem", 1, 1, res);
+    res = binding.decrypt(0, "rsa_public_key.pem", 1, 0, res);
     console.log("C扩展公钥解密: " + res + "\n");
 
     //Nodejs原生解密
-    //var pem = fs.readFileSync("rsa_public_key.pem");
-    //var key = pem.toString();
-    //var buf = endata;
-    //var dedata = crypto.publicDecrypt({
-    //    key: key,
-    //    padding: crypto.RSA_PKCS1_PADDING
-    //}, buf);
-    //var resNode = dedata.toString();
-    //console.log("Nodejs原生公钥解密: " + resNode + "\n");
+    var pem = fs.readFileSync("rsa_public_key.pem");
+    var key = pem.toString();
+    var buf = endata;
+    var dedata = crypto.publicDecrypt({
+        key: key,
+        padding: crypto.RSA_PKCS1_PADDING
+    }, buf);
+    var resNode = dedata.toString();
+    console.log("Nodejs原生公钥解密: " + resNode + "\n");
 
-    //assert.equal(res, resNode);
+    assert.equal(res, resNode);
 }
 
 function testEncrypt() {
