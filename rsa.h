@@ -14,21 +14,16 @@ using namespace std;
 #define OUT_ENCRYPT_PATH "out.enc"
 #define OUT_DECRYPT_PATH "out.dec"
 
-#define PADDING RSA_PKCS1_PADDING
-#define SEC_BYTES 245
-#define RES_BYTES 344
+#define min(a,b) ( a < b ? a : b )
 
-//#define PADDING RSA_PKCS1_OAEP_PADDING
-//#define SEC_BYTES 87
-//#define RES_BYTES 116
+#define SEC_BYTES(rsa, padding) (getBlockSizeWithRSA_PADDING_TYPE(rsa, padding))
+#define RES_BYTES(rsa) (ceil(RSA_size(rsa), 3) * 4)
 
 #define RSAPublicKeyFile "rsa_public_key.pem"
 #define RSAPrivateKeyFile "rsa_private_key.pem"
 
 #define TYPE_PRIVATE 0
 #define TYPE_PUBLIC 1
-
-#define min(a,b) ( a < b ? a : b )
 
 string rsaEncrypt(string str, RSA *p_rsa, Isolate *isolate, int alg);
 string rsaDecrypt(string str, RSA *p_rsa, Isolate *isolate, int alg);

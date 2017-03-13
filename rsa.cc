@@ -1,11 +1,23 @@
 #include "rsa.h"
 
+int padding;
+
 string rsaEncrypt(string in, RSA *p_rsa, Isolate *isolate, int alg) {
+    if (alg == 0) {
+        padding = RSA_PKCS1_PADDING;
+    } else {
+        padding = RSA_PKCS1_OAEP_PADDING;
+    }
     string out = encryptByRsaWith(p_rsa, in, alg);
     return out;
 }
 
 string rsaDecrypt(string in, RSA *p_rsa, Isolate *isolate, int alg) {
+    if (alg == 0) {
+        padding = RSA_PKCS1_PADDING;
+    } else {
+        padding = RSA_PKCS1_OAEP_PADDING;
+    }
     string out = decryptByRsaWith(p_rsa, in, 1 - alg);
     return out;
 }
@@ -59,11 +71,11 @@ string encryptByRsaToData(RSA *rsa, string content, int keyType) {
 
     switch (keyType) {
         case TYPE_PUBLIC:
-            status = RSA_public_encrypt(length, (unsigned char*)input, (unsigned char*)encData, rsa, PADDING);
+            status = RSA_public_encrypt(length, (unsigned char*)input, (unsigned char*)encData, rsa, padding);
             break;
 
         default:
-            status = RSA_private_encrypt(length, (unsigned char*)input, (unsigned char*)encData, rsa, PADDING);
+            status = RSA_private_encrypt(length, (unsigned char*)input, (unsigned char*)encData, rsa, padding);
             break;
     }
 
@@ -82,18 +94,18 @@ string decryptByRsa(RSA *rsa, string content, int keyType) {
     int status;
     string data = base64_decode(content);
 
-    int flen = getBlockSizeWithRSA_PADDING_TYPE(rsa, PADDING);
+    int flen = getBlockSizeWithRSA_PADDING_TYPE(rsa, padding);
     char *decData = (char*)calloc(1, flen + 1);
 
     int length = RSA_size(rsa);
 
     switch (keyType) {
         case TYPE_PUBLIC:
-            status = RSA_public_decrypt(length, (unsigned char*)data.c_str(), (unsigned char*)decData, rsa, PADDING);
+            status = RSA_public_decrypt(length, (unsigned char*)data.c_str(), (unsigned char*)decData, rsa, padding);
             break;
 
         default:
-            status = RSA_private_decrypt(length, (unsigned char*)data.c_str(), (unsigned char*)decData, rsa, PADDING);
+            status = RSA_private_decrypt(length, (unsigned char*)data.c_str(), (unsigned char*)decData, rsa, padding);
             break;
     }
 
@@ -122,8 +134,8 @@ int getBlockSizeWithRSA_PADDING_TYPE(RSA *rsa, int padding_type) {
 
 string encryptByRsaWith(RSA *rsa, string str, int keyType) {
     string encryptStr;
-    for (int i = 0; i < ceil(str.size(), SEC_BYTES); i++) {
-        string ss = encryptByRsa(rsa, str.substr(i * SEC_BYTES, min(SEC_BYTES, str.size() - i * SEC_BYTES)), keyType);
+    for (int i = 0; i < ceil(str.size(), SEC_BYTES(rsa, padding)); i++) {
+        string ss = encryptByRsa(rsa, str.substr(i * SEC_BYTES(rsa, padding), min(SEC_BYTES(rsa, padding), (int)(str.size() - i * SEC_BYTES(rsa, padding)))), keyType);
         encryptStr.append(ss);
     }
     return encryptStr;
@@ -131,9 +143,9 @@ string encryptByRsaWith(RSA *rsa, string str, int keyType) {
 
 string decryptByRsaWith(RSA *rsa, string str, int keyType) {
     string decryptStr;
-    for (int i = 0; i < ceil(str.size(), RES_BYTES); i++) {
-        string rrr = decryptByRsa(rsa, str.substr(i * RES_BYTES, RES_BYTES), keyType);
-        string sss = rrr.size() <= SEC_BYTES ? rrr : rrr.substr(0, SEC_BYTES);
+    for (int i = 0; i < ceil(str.size(), (int)RES_BYTES(rsa)); i++) {
+        string rrr = decryptByRsa(rsa, str.substr(i * RES_BYTES(rsa), (int)RES_BYTES(rsa)), keyType);
+        string sss = (int)rrr.size() <= SEC_BYTES(rsa, padding) ? rrr : rrr.substr(0, SEC_BYTES(rsa, padding));
         decryptStr.append(sss);
     }
 
