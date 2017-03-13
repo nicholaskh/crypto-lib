@@ -6,8 +6,8 @@ Nodejs Crypto Lib
 *   openssl rsa -in rsa_private_key.pem -pubout -out rsa_public_key.pem
 
 #   Gen ecc key pair
-*   openssl ecparam -genkey -name secp112r1 -out ec_private_key.pem -text
-*   openssl ec -in eckey.pem -pubout -out ec_public_key.pem
+*   openssl ecparam -genkey -name secp256k1 -out ec_private_key.pem -text
+*   openssl ec -in ec_private_key.pem -pubout -out ec_public_key.pem
 
 #   HowToTest
 *   install node-gyp

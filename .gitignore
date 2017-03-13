@@ -6,4 +6,7 @@
 rsa_private_key.pem
 rsa_public_key.pem
 
+ec_private_key.pem
+ec_public_key.pem
+
 build
