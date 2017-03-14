@@ -126,7 +126,7 @@ int getBlockSizeWithRSA_PADDING_TYPE(RSA *rsa, int padding_type) {
     if (padding_type == RSA_PKCS1_PADDING) {
         len -= 11;
     } else if (padding_type == RSA_PKCS1_OAEP_PADDING) {
-        len -= 41;
+        len -= 42;
     }
 
     return len;
@@ -134,7 +134,9 @@ int getBlockSizeWithRSA_PADDING_TYPE(RSA *rsa, int padding_type) {
 
 string encryptByRsaWith(RSA *rsa, string str, int keyType) {
     string encryptStr;
+    cout<<str.size()<<endl<<SEC_BYTES(rsa, padding)<<endl;
     for (int i = 0; i < ceil(str.size(), SEC_BYTES(rsa, padding)); i++) {
+        cout<<min(SEC_BYTES(rsa, padding), (int)(str.size() - i * SEC_BYTES(rsa, padding)))<<endl;
         string ss = encryptByRsa(rsa, str.substr(i * SEC_BYTES(rsa, padding), min(SEC_BYTES(rsa, padding), (int)(str.size() - i * SEC_BYTES(rsa, padding)))), keyType);
         encryptStr.append(ss);
     }
