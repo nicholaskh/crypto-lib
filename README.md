@@ -2,7 +2,7 @@ Nodejs Crypto Lib
 =================
 
 #   Gen rsa key pair
-*   openssl genrsa -out rsa_private_key.pem -f4 1024
+*   openssl genrsa -out rsa_private_key.pem -f4 -rand /dev/urandom 2048
 *   openssl rsa -in rsa_private_key.pem -pubout -out rsa_public_key.pem
 
 #   Gen ecc key pair
