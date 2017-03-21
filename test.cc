@@ -131,7 +131,7 @@ void decrypt(const v8::FunctionCallbackInfo<v8::Value>& args) {
                 return;
             }
             if (alg == 0) {
-                if ((p_rsa = PEM_read_bio_RSAPublicKey(bio_key, NULL, NULL, NULL)) == NULL) {
+                if ((p_rsa = PEM_read_bio_RSA_PUBKEY(bio_key, NULL, NULL, NULL)) == NULL) {
                     isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Read public key bio error")));
                     BIO_free(bio_key);
                     return;
