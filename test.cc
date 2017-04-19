@@ -120,6 +120,15 @@ void decrypt(const v8::FunctionCallbackInfo<v8::Value>& args) {
     int dataType = args[3]->IntegerValue();
     String::Utf8Value str(args[4]->ToString());
     string in = string(*str, str.length());
+    string filename;
+    if (dataType != 0) {
+        if (args[5]->IsString()) {
+            String::Utf8Value str(args[5]->ToString());
+            filename = string(*str, str.length());
+        } else {
+            filename = OUT_DECRYPT_PATH;
+        }
+    }
 
     string out;
     if (alg == 0 || alg == 1) {
@@ -176,14 +185,14 @@ void decrypt(const v8::FunctionCallbackInfo<v8::Value>& args) {
     if (dataType == 0) {
         args.GetReturnValue().Set(v8::String::NewFromUtf8(isolate, out.c_str(), NewStringType::kNormal, out.size()).ToLocalChecked());
     } else {
-        FILE *fp = fopen(OUT_DECRYPT_PATH, "w");
+        FILE *fp = fopen(filename.c_str(), "w");
         if (fp == 0) {
             isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Open output file error")));
             return;
         }
         fwrite(out.c_str(), out.size(), 1, fp);
         fclose(fp);
-        args.GetReturnValue().Set(v8::String::NewFromUtf8(isolate, OUT_DECRYPT_PATH));
+        args.GetReturnValue().Set(v8::String::NewFromUtf8(isolate, filename.c_str()));
     }
     return;
 }

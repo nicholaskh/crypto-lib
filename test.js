@@ -34,12 +34,12 @@ const rsa_public_key = "-----BEGIN PUBLIC KEY-----\n" +
 "hwIDAQAB\n" +
 "-----END PUBLIC KEY-----";
 
-//var str = "45678904567890456789045678904567890456789045678904567890456789045678904567890456789045678904567890456789045678904567890456789045678904567890456789045678904567890456789045678904567890456789045678904567890456789045678904567890456789045678904567890456789045678904567890abcdefghijklmnopqrstuvwxyzaaa";
-var str = "456789045678904567890456789045678";
-//var str = fs.readFileSync('jia245.txt');
+// var str = "45678904567890456789045678904567890456789045678904567890456789045678904567890456789045678904567890456789045678904567890456789045678904567890456789045678904567890456789045678904567890456789045678904567890456789045678904567890456789045678904567890456789045678904567890abcdefghijklmnopqrstuvwxyzaaa";
+//var str = "456789045678904567890456789045678";
+var str = fs.readFileSync('bitcoin.pdf');
 
 try {
-    testSign();   
+    //testSign();
     testEncrypt();
 } catch (e) {
     console.log(e.toString());
@@ -93,32 +93,32 @@ function testEncrypt() {
     console.log("C扩展公钥加密: " + res + "\n");
 
     //Nodejs原生解密
-    var pem = fs.readFileSync("rsa_private_key.pem");
-    var key = pem.toString();
-    var buf = new Buffer(res, "base64");
-    var dedata = crypto.privateDecrypt({
-        key: key,
-        padding: crypto.RSA_PKCS1_OAEP_PADDING,
-    }, buf);
-    var resNode = dedata.toString();
-    console.log("Nodejs原生私钥解密: " + resNode + "\n");
+    //var pem = fs.readFileSync("rsa_private_key.pem");
+    //var key = pem.toString();
+    //var buf = new Buffer(res, "base64");
+    //var dedata = crypto.privateDecrypt({
+    //    key: key,
+    //    padding: crypto.RSA_PKCS1_OAEP_PADDING,
+    //}, buf);
+    //var resNode = dedata.toString();
+    //console.log("Nodejs原生私钥解密: " + resNode + "\n");
 
-    assert.equal(str, resNode);
+    //assert.equal(str, resNode);
 
     //Nodejs原生加密
-    var pem = fs.readFileSync('rsa_public_key.pem');
-    var key = pem.toString();
-    var buf = new Buffer(str);
-    var endata = crypto.publicEncrypt({
-        key: key,
-        padding: crypto.RSA_PKCS1_OAEP_PADDING,
-    }, buf);
-    var resNode = endata.toString("base64");
-    console.log("Nodejs原生公钥加密: " + resNode + "\n");
+    //var pem = fs.readFileSync('rsa_public_key.pem');
+    //var key = pem.toString();
+    //var buf = new Buffer(str);
+    //var endata = crypto.publicEncrypt({
+    //    key: key,
+    //    padding: crypto.RSA_PKCS1_OAEP_PADDING,
+    //}, buf);
+    //var resNode = endata.toString("base64");
+    //console.log("Nodejs原生公钥加密: " + resNode + "\n");
 
     //C扩展解密
-    res = binding.decrypt(1, "rsa_private_key.pem", 1, 0, resNode);
-    console.log("C扩展私钥解密: " + res + "\n");
+    //res = binding.decrypt(1, "rsa_private_key.pem", 1, 0, resNode);
+    //console.log("C扩展私钥解密: " + res + "\n");
 
-    assert.equal(res, str);
+    //assert.equal(res, str);
 }

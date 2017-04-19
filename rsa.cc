@@ -6,7 +6,8 @@ string rsaEncrypt(string in, RSA *p_rsa, Isolate *isolate, int alg) {
     if (alg == 0) {
         padding = RSA_PKCS1_PADDING;
     } else {
-        padding = RSA_PKCS1_OAEP_PADDING;
+        //padding = RSA_PKCS1_OAEP_PADDING;
+        padding = RSA_PKCS1_PADDING;
     }
     string out = encryptByRsaWith(p_rsa, in, alg);
     return out;
@@ -16,7 +17,8 @@ string rsaDecrypt(string in, RSA *p_rsa, Isolate *isolate, int alg) {
     if (alg == 0) {
         padding = RSA_PKCS1_PADDING;
     } else {
-        padding = RSA_PKCS1_OAEP_PADDING;
+        //padding = RSA_PKCS1_OAEP_PADDING;
+        padding = RSA_PKCS1_PADDING;
     }
     string out = decryptByRsaWith(p_rsa, in, 1 - alg);
     return out;
